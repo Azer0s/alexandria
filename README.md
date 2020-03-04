@@ -1,6 +1,6 @@
 # alexandria
 
-The simple DNS server
+A simple DNS server
 
 ## Getting started
 
