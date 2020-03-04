@@ -5,7 +5,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func Startup() {
+func Startup(cfg Config) {
 	log.Info("Starting DNS Server")
-	dns.StartDnsUdp("localhost", 1053)
+	dns.StartDnsUdp(cfg.Hostname, cfg.Port)
 }

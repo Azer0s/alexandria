@@ -1,8 +1,11 @@
 package communication
 
 import (
+	"encoding/hex"
+	"fmt"
 	log "github.com/sirupsen/logrus"
 	"net"
+	"strings"
 )
 
 type UDPServer struct {
@@ -10,10 +13,10 @@ type UDPServer struct {
 	Port     int
 }
 
-type UDPHandler func(addr net.Addr, buf []byte)[]byte
+type UDPHandler func(addr net.Addr, buf []byte) []byte
 
 func (s UDPServer) Start(handler UDPHandler) {
-	log.Debugf("Listening on %s:%d/udp", s.Hostname, s.Port)
+	log.Infof("Listening on %s:%d/udp", s.Hostname, s.Port)
 	go func() {
 		pc, err := net.ListenPacket("udp", ":8333")
 		if err != nil {
@@ -28,14 +31,30 @@ func (s UDPServer) Start(handler UDPHandler) {
 				continue
 			}
 			go func() {
-				log.Tracef("Received %d bytes from client %s", n, addr.String())
-				result := handler(addr, buf[:n])
+				log.WithFields(log.Fields{
+					"client": addr.String(),
+				}).Debugf("Received %d bytes", n)
+
+				buf = buf[:n]
+
+				log.WithFields(log.Fields{
+					"client": addr.String(),
+				}).Trace(func() string {
+					return strings.ReplaceAll(fmt.Sprintf("\n%s", hex.Dump(buf)), "\n", "\n\t")
+				}())
+
+				result := handler(addr, buf)
 				n, err := pc.WriteTo(result, addr)
 
 				if err != nil {
-					log.Debugf("Error while replying to client %s", addr.String())
+					log.WithFields(log.Fields{
+						"client": addr.String(),
+					}).Warnf("Error while replying")
 				}
-				log.Tracef("Sent %d bytes to client %s", n, addr.String())
+
+				log.WithFields(log.Fields{
+					"client": addr.String(),
+				}).Debugf("Sent %d bytes", n)
 			}()
 		}
 	}()
