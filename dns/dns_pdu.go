@@ -38,8 +38,33 @@ func readLabels(buffer *bytes.Buffer) ([]string, error) {
 	return labels, err
 }
 
+func parseResourceRecords(num int, buffer *bytes.Buffer) ([]protocol.DNSResourceRecord, error) {
+	rrs := make([]protocol.DNSResourceRecord, 0)
+	for i := 0; i < num; i++ {
+		rr := protocol.DNSResourceRecord{}
+
+		labels, err := readLabels(buffer)
+		rr.Labels = labels
+
+		if err != nil {
+			return make([]protocol.DNSResourceRecord, 0), err
+		}
+
+		rr.Type = fields.RecordType(binary.BigEndian.Uint16(buffer.Next(2)))
+		rr.Class = fields.RecordClass(binary.BigEndian.Uint16(buffer.Next(2)))
+		rr.TimeToLive = binary.BigEndian.Uint32(buffer.Next(4))
+		rr.ResourceDataLength = binary.BigEndian.Uint16(buffer.Next(2))
+		rr.ResourceData = buffer.Next(int(rr.ResourceDataLength))
+
+		rrs = append(rrs, rr)
+	}
+
+	return rrs, nil
+}
+
 func parseBody(header protocol.DNSHeader, buffer *bytes.Buffer) (protocol.DNSPDU, error) {
 	pdu := protocol.DNSPDU{}
+	pdu.Header = header
 
 	questions := make([]protocol.DNSQuestion, 0)
 	for i := 0; i < int(header.TotalQuestions); i++ {
@@ -58,33 +83,25 @@ func parseBody(header protocol.DNSHeader, buffer *bytes.Buffer) (protocol.DNSPDU
 		questions = append(questions, question)
 	}
 
-	//TODO: Answers, AuthorityResourceRecords
+	answers, err := parseResourceRecords(int(header.TotalAnswerResourceRecords), buffer)
+	if err != nil {
+		return protocol.DNSPDU{}, err
+	}
 
-	additional := make([]protocol.DNSResourceRecord, 0)
-	for i := 0; i < int(header.TotalAdditionalResourceRecords); i++ {
-		rr := protocol.DNSResourceRecord{}
+	authority, err := parseResourceRecords(int(header.TotalAuthorityResourceRecords), buffer)
+	if err != nil {
+		return protocol.DNSPDU{}, err
+	}
 
-		labels, err := readLabels(buffer)
-		rr.Labels = labels
-
-		if err != nil {
-			return protocol.DNSPDU{}, err
-		}
-
-		rr.Type = fields.RecordType(binary.BigEndian.Uint16(buffer.Next(2)))
-		rr.Class = fields.RecordClass(binary.BigEndian.Uint16(buffer.Next(2)))
-		rr.TimeToLive = binary.BigEndian.Uint32(buffer.Next(4))
-		rr.ResourceDataLength = binary.BigEndian.Uint16(buffer.Next(2))
-		rr.ResourceData = buffer.Next(int(rr.ResourceDataLength))
-
-		additional = append(additional, rr)
+	additional, err := parseResourceRecords(int(header.TotalAdditionalResourceRecords), buffer)
+	if err != nil {
+		return protocol.DNSPDU{}, err
 	}
 
 	pdu.Questions = questions
-	//TODO: Answers, AuthorityResourceRecords
+	pdu.AnswerResourceRecords = answers
+	pdu.AuthorityResourceRecords = authority
 	pdu.AdditionalResourceRecords = additional
-
-	pdu.Header = header
 
 	return pdu, nil
 }
