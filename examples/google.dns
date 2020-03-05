@@ -1,3 +1,6 @@
 zone "google.com" {
-    ns native => ns1.google.com
+    ns native 36493 => "ns1.google.com"
+    ns native 36493 => "ns2.google.com"
+    ns native 36493 => "ns3.google.com"
+    ns native 36493 => "ns4.google.com"
 }

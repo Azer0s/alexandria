@@ -18,6 +18,8 @@ func getResourceTypeByIdentifier(identifier string, line int) fields.RecordType 
 		return record_type.A
 	} else if identifier == "txt" {
 		return record_type.TXT
+	} else if identifier == "ns" {
+		return record_type.NS
 	} else {
 		log.Fatalf("Unexpected identifier %s! Line %d", identifier, line)
 	}
@@ -59,6 +61,7 @@ func parseKV(tokens []Token, i *int, canRecurse bool) []KV {
 		if token.Type == NUMBER {
 			ttl, _ := strconv.Atoi(token.Value)
 			kv.TimeToLive = uint32(ttl)
+			next(&token, &tokens, i)
 		}
 
 		if token.Type != ARROW {
@@ -76,7 +79,7 @@ func parseKV(tokens []Token, i *int, canRecurse bool) []KV {
 		}
 
 		if token.Type != STRING {
-			log.Fatalf("Expected string, got %s! %d", token.Value, token.Line)
+			log.Fatalf("Expected string, got %s! Line %d", token.Value, token.Line)
 		}
 
 		kv.Value = token.Value

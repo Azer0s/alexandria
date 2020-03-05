@@ -12,6 +12,8 @@ import (
 // by that number of octets.  Since every domain name ends with the null label
 // of the root, a domain name is terminated by a length byte of zero."
 
+// https://www.cloudflare.com/learning/dns/dns-records
+
 // DNSHeader describes the DNS header as documented in RFC 1035
 type DNSHeader struct {
 	Identifier                     uint16 `json:"identifier"`
@@ -49,6 +51,12 @@ type DNSPDU struct {
 }
 
 func writeLabels(responseBuffer *bytes.Buffer, labels []string) error {
+	//If the label is nil, we just insert a DNS pointer
+	if labels == nil {
+		_, err := responseBuffer.Write([]byte{0xc0, 0x0c})
+		return err
+	}
+
 	for _, label := range labels {
 		labelLength := len(label)
 		labelBytes := []byte(label)

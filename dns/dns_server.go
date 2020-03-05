@@ -29,6 +29,38 @@ func getByQuestion(q protocol.DNSQuestion) []protocol.DNSResourceRecord {
 		answers = append(answers, googleRecord)
 	}
 
+	if fqdn == "google.com" && q.Type == record_type.NS && q.Class == record_class.Internet {
+
+		//TODO: Figure out DNS pointers
+		//Okay...so apparently to get DNS pointers to work,
+		//one has to insert the size of the FQDN before the
+		//pointer, then the label and then the pointer
+		//So basically the same as for normal labels
+		//Which means that if the end of the request FQDN
+		//matches with our response FQDN, we can cut the end
+		//and replace it with a pointer
+
+		//And I could've known all that without searching
+		//for hours by just reading the RFC 🤷🏻‍️
+
+		//TODO: Rework labels & resource data (sometimes it needs to be formatted as a label)
+		b := []byte("ns1")
+
+		ns1 := []byte{byte(len(b))}
+		ns1 = append(ns1, b...)
+		ns1 = append(ns1, []byte{0xc0, 0x0c}...)
+
+		//TODO: Fix flags
+		answers = append(answers, protocol.DNSResourceRecord{
+			Labels:             nil,
+			Type:               record_type.NS,
+			Class:              record_class.Internet,
+			TimeToLive:         36493,
+			ResourceData:       ns1,
+			ResourceDataLength: uint16(len(ns1)),
+		})
+	}
+
 	return answers
 }
 

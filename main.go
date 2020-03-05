@@ -16,7 +16,8 @@ const ASCII_ART = `
   \__,_|_|\___/_/\_\__,_|_| |_|\__,_|_|  |_|\__,_| |_____/|_| \_|_____/`
 
 func main() {
-	dnscfg.Parse("examples/config.dns")
+	zones := dnscfg.Parse("examples/google.dns")
+	fmt.Println(len(zones))
 
 	cfg := launchctrl.GetConfig()
 	launchctrl.ConfigureLog(cfg)
