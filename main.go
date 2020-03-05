@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	dnscfg "github.com/Azer0s/alexandria/dns/cfg"
 	"github.com/Azer0s/alexandria/launchctrl"
 )
 
@@ -15,6 +16,8 @@ const ASCII_ART = `
   \__,_|_|\___/_/\_\__,_|_| |_|\__,_|_|  |_|\__,_| |_____/|_| \_|_____/`
 
 func main() {
+	dnscfg.Parse("examples/config.dns")
+
 	cfg := launchctrl.GetConfig()
 	launchctrl.ConfigureLog(cfg)
 

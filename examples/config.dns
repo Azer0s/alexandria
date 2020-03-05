@@ -1,0 +1,20 @@
+#default_ttl 86400
+#include google.dns
+
+zone "simulevski.at" {
+    cname native => in "www"
+
+    cname "www" => "azer0s.github.io"
+
+    txt {
+       native => "v=spf1 a mx include:_spf.google.com ~all"
+       "_dmarc" => "v=DMARC1; p=reject; rua=mailto: ariel@simulevski.at"
+       "google._domainkey" => "v=DKIM1; k=rsa; p=test"
+    }
+}
+
+zone "github.io" {
+    zone "azer0s" {
+        a native => IP "127.0.0.1"
+    }
+}

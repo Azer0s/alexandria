@@ -1,0 +1,3 @@
+zone "google.com" {
+    ns native => ns1.google.com
+}

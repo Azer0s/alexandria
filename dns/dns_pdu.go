@@ -4,9 +4,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-	"github.com/Azer0s/alexandria/dns/protocol"
-
 	"github.com/Azer0s/alexandria/dns/enums/fields"
+	"github.com/Azer0s/alexandria/dns/protocol"
 )
 
 func parseHeader(buffer *bytes.Buffer) (protocol.DNSHeader, error) {
@@ -20,10 +19,6 @@ func parseHeader(buffer *bytes.Buffer) (protocol.DNSHeader, error) {
 	return header, nil
 }
 
-// RFC1035: "Domain names in messages are expressed in terms of a sequence
-// of labels. Each label is represented as a one octet length field followed
-// by that number of octets.  Since every domain name ends with the null label
-// of the root, a domain name is terminated by a length byte of zero."
 func readLabels(buffer *bytes.Buffer) ([]string, error) {
 	labels := make([]string, 0)
 
