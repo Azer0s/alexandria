@@ -26,6 +26,7 @@ func readLabels(buffer *bytes.Buffer) ([]string, error) {
 
 	for ; b != 0 && err == nil; b, err = buffer.ReadByte() {
 		length := int(b)
+		//TODO: Parse DNS pointer
 		labelBytes := buffer.Next(length)
 		labels = append(labels, string(labelBytes))
 	}
@@ -101,6 +102,36 @@ func parseBody(header protocol.DNSHeader, buffer *bytes.Buffer) (protocol.DNSPDU
 	return pdu, nil
 }
 
+func parseFlags(flags uint16) protocol.DNSFlags {
+	result := protocol.DNSFlags{}
+
+	if (flags >> 15) == 1 {
+		result.QueryResponse = true
+	}
+
+	result.OpCode = fields.OpCode(uint8(flags>>11) & uint8(0b0000_1111))
+
+	if (flags<<5)>>15 == 1 {
+		result.AuthoritativeAnswer = true
+	}
+
+	if (flags<<6)>>15 == 1 {
+		result.Truncated = true
+	}
+
+	if (flags<<7)>>15 == 1 {
+		result.RecursionDesired = true
+	}
+
+	if (flags<<8)>>15 == 1 {
+		result.RecursionAvailable = true
+	}
+
+	result.ResponseCode = fields.ResponseCode(uint8(flags) & uint8(0b0000_1111))
+
+	return result
+}
+
 func ParseDnsPdu(buf []byte) (protocol.DNSPDU, error) {
 	buffer := bytes.NewBuffer(buf)
 
@@ -113,6 +144,8 @@ func ParseDnsPdu(buf []byte) (protocol.DNSPDU, error) {
 	if err != nil {
 		return protocol.DNSPDU{}, err
 	}
+
+	pdu.Flags = parseFlags(header.Flags)
 
 	return pdu, nil
 }

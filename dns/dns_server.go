@@ -3,8 +3,11 @@ package dns
 import (
 	"encoding/json"
 	"github.com/Azer0s/alexandria/communication"
+	"github.com/Azer0s/alexandria/dns/enums/message_type"
+	"github.com/Azer0s/alexandria/dns/enums/opcode"
 	"github.com/Azer0s/alexandria/dns/enums/record_class"
 	"github.com/Azer0s/alexandria/dns/enums/record_type"
+	"github.com/Azer0s/alexandria/dns/enums/response_code"
 	"github.com/Azer0s/alexandria/dns/protocol"
 	log "github.com/sirupsen/logrus"
 	"net"
@@ -48,6 +51,11 @@ func getByQuestion(q protocol.DNSQuestion) []protocol.DNSResourceRecord {
 
 		ns1 := []byte{byte(len(b))}
 		ns1 = append(ns1, b...)
+
+		//0xc0 means pointer
+		//0x0c means to position 13
+		//so we have a pointer to position 13 (so right after the header)
+		//which is the FQDN of the question
 		ns1 = append(ns1, []byte{0xc0, 0x0c}...)
 
 		//TODO: Fix flags
@@ -108,7 +116,7 @@ func StartDnsUdp(hostname string, port int) {
 		response := protocol.DNSPDU{
 			Header: protocol.DNSHeader{
 				Identifier:                     pdu.Header.Identifier,
-				Flags:                          1 << 15, //Response flag
+				Flags:                          0,
 				TotalQuestions:                 pdu.Header.TotalQuestions,
 				TotalAnswerResourceRecords:     uint16(len(answers)),
 				TotalAuthorityResourceRecords:  0,
@@ -118,6 +126,15 @@ func StartDnsUdp(hostname string, port int) {
 			AnswerResourceRecords:     answers,
 			AuthorityResourceRecords:  make([]protocol.DNSResourceRecord, 0),
 			AdditionalResourceRecords: make([]protocol.DNSResourceRecord, 0),
+			Flags: protocol.DNSFlags{
+				QueryResponse:       message_type.Response,
+				OpCode:              opcode.Query,
+				AuthoritativeAnswer: false,
+				Truncated:           false,
+				RecursionDesired:    false,
+				RecursionAvailable:  false,
+				ResponseCode:        response_code.NoError,
+			},
 		}
 
 		b, err := response.Bytes()

@@ -2,10 +2,18 @@ package launchctrl
 
 import (
 	"encoding/json"
+	dnscfg "github.com/Azer0s/alexandria/dns/cfg"
+	"github.com/Azer0s/alexandria/dns/cfg/interpreter"
+	"github.com/Azer0s/alexandria/dns/enums/fields"
+	"github.com/Azer0s/alexandria/dns/enums/record_class"
+	"github.com/Azer0s/alexandria/dns/protocol"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"strconv"
+	"strings"
 )
+
+type ZoneMap map[string]map[fields.RecordType][]protocol.DNSResourceRecord
 
 const (
 	LOGLEVEL   = "LOG_LEVEL"
@@ -13,6 +21,7 @@ const (
 	PRINTTITLE = "PRINT_TITLE"
 	HOSTNAME   = "HOSTNAME"
 	PORT       = "PORT"
+	CONFIGS    = "CONFIGS"
 
 	ENV_INVALID_STRING = "Environment variable %s not set or invalid, aborting!"
 )
@@ -23,6 +32,7 @@ type Config struct {
 	PrintTitle bool      `json:"print_title"`
 	Hostname   string    `json:"hostname"`
 	Port       int       `json:"port"`
+	Configs    []string  `json:"configs"`
 }
 
 func GetConfig() Config {
@@ -58,6 +68,8 @@ func GetConfig() Config {
 	}
 	cfg.Port = port
 
+	cfg.Configs = strings.Split(os.Getenv(CONFIGS), ",")
+
 	return cfg
 }
 
@@ -77,4 +89,74 @@ func ConfigureLog(cfg Config) {
 
 		return string(b)
 	}())
+}
+
+func getFQDNName(entry interpreter.Entry, zoneFqdn string) string {
+	fqdnName := zoneFqdn
+
+	if !entry.Native {
+		fqdnName = entry.Name + "." + fqdnName
+	}
+
+	return fqdnName
+}
+
+func zoneToDnsPdu(zone interpreter.Zone, parentZone string) ZoneMap {
+	result := make(ZoneMap, 0)
+
+	if parentZone != "" {
+		zone.FQDN = zone.FQDN + "." + parentZone
+	}
+
+	for _, entry := range zone.Entries {
+		fqdnName := getFQDNName(entry, zone.FQDN)
+
+		if result[fqdnName] == nil {
+			result[fqdnName] = make(map[fields.RecordType][]protocol.DNSResourceRecord, 0)
+		}
+
+		if result[fqdnName][entry.Type] == nil {
+			result[fqdnName][entry.Type] = make([]protocol.DNSResourceRecord, 0)
+		}
+	}
+
+	for _, entry := range zone.Entries {
+		fqdnName := getFQDNName(entry, zone.FQDN)
+
+		result[fqdnName][entry.Type] = append(result[fqdnName][entry.Type], protocol.DNSResourceRecord{
+			Labels:             nil,
+			Type:               entry.Type,
+			Class:              record_class.Internet,
+			TimeToLive:         entry.TimeToLive,
+			ResourceDataLength: uint16(len(entry.Value)),
+			ResourceData:       entry.Value,
+		})
+	}
+
+	for _, z := range zone.Zones {
+		for k, v := range zoneToDnsPdu(z, zone.FQDN) {
+			result[k] = v
+		}
+	}
+
+	return result
+}
+
+func ConfigureZones(cfg Config) {
+	zones := make([]dnscfg.Zones, 0)
+	for _, config := range cfg.Configs {
+		zones = append(zones, dnscfg.Parse(config))
+	}
+
+	zoneMap := make(ZoneMap, 0)
+
+	for _, zone := range zones {
+		for _, subzone := range zone {
+			for k, v := range zoneToDnsPdu(subzone, "") {
+				zoneMap[k] = v
+			}
+		}
+	}
+
+	//TODO: Store ZoneMap _somewhere efficient_
 }

@@ -24,6 +24,17 @@ type DNSHeader struct {
 	TotalAdditionalResourceRecords uint16 `json:"num_additional"`
 }
 
+// DNSFlags describe the flags of the DNS header
+type DNSFlags struct {
+	QueryResponse       fields.MessageType  `json:"query_response"`
+	OpCode              fields.OpCode       `json:"op_code"`
+	AuthoritativeAnswer bool                `json:"authoritative_answer"`
+	Truncated           bool                `json:"truncated"`
+	RecursionDesired    bool                `json:"recursion_desired"`
+	RecursionAvailable  bool                `json:"recursion_available"`
+	ResponseCode        fields.ResponseCode `json:"response_code"`
+}
+
 // DNSResourceRecord describes individual records in the request and response of the DNS payload body
 type DNSResourceRecord struct {
 	Labels             []string           `json:"labels"`
@@ -44,14 +55,45 @@ type DNSQuestion struct {
 // DNSPDU describes the DNS protocol data unit as documented in RFC 1035
 type DNSPDU struct {
 	Header                    DNSHeader           `json:"header"`
+	Flags                     DNSFlags            `json:"flags"`
 	Questions                 []DNSQuestion       `json:"questions"`
 	AnswerResourceRecords     []DNSResourceRecord `json:"answers"`
 	AuthorityResourceRecords  []DNSResourceRecord `json:"authority"`
 	AdditionalResourceRecords []DNSResourceRecord `json:"additional"`
 }
 
+func (flags DNSFlags) Uint16() uint16 {
+	result := uint16(0)
+
+	if flags.QueryResponse {
+		result |= uint16(0b1000_0000_0000_0000)
+	}
+
+	result |= (uint16(flags.OpCode) << 11) & uint16(0b01111_1000_0000_0000)
+
+	if flags.AuthoritativeAnswer {
+		result |= uint16(0b0000_0100_0000_0000)
+	}
+
+	if flags.Truncated {
+		result |= uint16(0b0000_0010_0000_0000)
+	}
+
+	if flags.RecursionDesired {
+		result |= uint16(0b0000_0001_0000_0000)
+	}
+
+	if flags.RecursionAvailable {
+		result |= uint16(0b0000_0000_1000_0000)
+	}
+
+	result |= uint16(uint8(flags.ResponseCode) & uint8(0b0000_1111))
+
+	return result
+}
+
 func writeLabels(responseBuffer *bytes.Buffer, labels []string) error {
-	//If the label is nil, we just insert a DNS pointer
+	//If the label is nil, we just insert a DNS pointer to the request FQDN position (byte 13)
 	if labels == nil {
 		_, err := responseBuffer.Write([]byte{0xc0, 0x0c})
 		return err
@@ -108,6 +150,8 @@ func writeResourceRecords(buffer *bytes.Buffer, rrs []DNSResourceRecord) error {
 
 func (pdu DNSPDU) Bytes() ([]byte, error) {
 	var responseBuffer = new(bytes.Buffer)
+
+	pdu.Header.Flags = pdu.Flags.Uint16()
 
 	err := binary.Write(responseBuffer, binary.BigEndian, &pdu.Header)
 

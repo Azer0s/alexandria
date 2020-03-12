@@ -5,6 +5,6 @@ import (
 )
 
 const (
-	Query    fields.MessageType = 0 // RFC 1035
-	Response fields.MessageType = 1 // RFC 1035
+	Query    fields.MessageType = false // RFC 1035
+	Response fields.MessageType = true  // RFC 1035
 )
