@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	dnscfg "github.com/Azer0s/alexandria/dns/cfg"
 	"github.com/Azer0s/alexandria/launchctrl"
+	"github.com/Azer0s/alexandria/launchctrl/env"
 )
 
 const VERSION = "0.1.0"
@@ -15,9 +17,9 @@ const ASCII_ART = `
   \__,_|_|\___/_/\_\__,_|_| |_|\__,_|_|  |_|\__,_| |_____/|_| \_|_____/`
 
 func main() {
-	cfg := launchctrl.GetConfig()
-	launchctrl.ConfigureLog(cfg)
-	launchctrl.ConfigureZones(cfg)
+	cfg := env.GetConfig()
+	env.ConfigureLog(cfg)
+	dnscfg.ConfigureZones(cfg)
 
 	if cfg.PrintTitle {
 		fmt.Println(ASCII_ART)

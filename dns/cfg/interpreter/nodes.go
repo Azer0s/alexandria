@@ -1,6 +1,9 @@
 package interpreter
 
-import "github.com/Azer0s/alexandria/dns/enums/fields"
+import (
+	"github.com/Azer0s/alexandria/dns/enums/fields"
+	"github.com/Azer0s/alexandria/dns/protocol"
+)
 
 type Zone struct {
 	FQDN    string
@@ -16,3 +19,6 @@ type Entry struct {
 	Name       string
 	Value      []byte
 }
+
+type Zones []Zone
+type ZoneMap map[string]map[fields.RecordType][]protocol.DNSResourceRecord

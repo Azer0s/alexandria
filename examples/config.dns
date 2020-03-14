@@ -7,9 +7,9 @@ zone "simulevski.at" {
     cname "www" => "azer0s.github.io"
 
     txt {
-       native => RAW "v=spf1 a mx include:_spf.google.com ~all"
-       "_dmarc" => RAW "v=DMARC1; p=reject; rua=mailto: ariel@simulevski.at"
-       "google._domainkey" => RAW "v=DKIM1; k=rsa; p=test"
+       native => "v=spf1 a mx include:_spf.google.com ~all"
+       "_dmarc" => "v=DMARC1; p=reject; rua=mailto: ariel@simulevski.at"
+       "google._domainkey" => "v=DKIM1; k=rsa; p=test"
     }
 }
 

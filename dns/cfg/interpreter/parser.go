@@ -33,7 +33,6 @@ type KV struct {
 	Native     bool
 	Recursive  bool
 	IP         bool
-	RAW        bool
 	TimeToLive uint32
 }
 
@@ -76,9 +75,6 @@ func parseKV(tokens []Token, i *int, canRecurse bool) []KV {
 			next(&token, &tokens, i)
 		} else if strings.ToLower(token.Value) == "ip" {
 			kv.IP = true
-			next(&token, &tokens, i)
-		} else if strings.ToLower(token.Value) == "raw" {
-			kv.RAW = true
 			next(&token, &tokens, i)
 		}
 
@@ -139,8 +135,10 @@ func parseZone(tokens []Token, i *int, defaultTtl uint32) Zone {
 					} else {
 						bytes = ip.To4()
 					}
-				} else if kv.RAW {
-					bytes = []byte(kv.Value)
+				} else if entryType == record_type.TXT {
+					b := []byte(kv.Value)
+					bytes = []byte{uint8(len(b))}
+					bytes = append(bytes, b...)
 				} else {
 					labels := strings.Split(kv.Value, ".")
 					bytes = make([]byte, 0)

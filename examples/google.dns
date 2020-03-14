@@ -3,4 +3,6 @@ zone "google.com" {
     ns native 36493 => "ns2.google.com"
     ns native 36493 => "ns3.google.com"
     ns native 36493 => "ns4.google.com"
+
+    a native => IP "216.58.207.46"
 }
